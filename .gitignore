@@ -1,0 +1,6 @@
+list/*
+bin/*
+obj/*
+!*.s
+!Makefile
+!makefile
