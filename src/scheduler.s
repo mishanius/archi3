@@ -21,7 +21,7 @@ scheduler:
 	mov dword [CURR_STEP_K], 1
 
 .continue:
-    cmp byte [SHOULD_STOP], 6500
+    cmp byte [SHOULD_STOP], 2
     jz scheduler.end
 
     mov eax, [DRONE_NUMBER]
@@ -31,12 +31,13 @@ scheduler:
 
     mov eax, [CURR_STEP_K]
     cmp eax, [NUMBER_OF_STEPS]
+    mov ebx, [TARGET_RUTINE]
+    call resume
     jnz scheduler.after_print
     mov ebx, [PRINT_RUTINE]
     call resume
     mov dword [CURR_STEP_K], 0 
-    mov ebx, [TARGET_RUTINE]
-    call resume
+    
 
 .after_print:
     inc dword [CURR_STEP_K]

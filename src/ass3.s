@@ -22,6 +22,8 @@ section .text ;here is my code
     global SEED
     global TARGET_RUTINE
     global TARGET_OBJECT
+    global random_float
+
 
 
 main:
@@ -224,6 +226,65 @@ resume.do_resume:
     popfd
     ret
 
+random_float:
+;input first arg (big address) - high limit
+;input second arg (mid address) - low limit
+;input third arg (smallest address) -address to store the 10 bit number
+    push   ebp
+    mov    ebp,esp
+    pushfd
+    pushad
+    mov ebx, [ebp + 4 + 4*1] ;address to store number
+    mov [address_to_return], ebx
+    mov ecx, [ebp + 4 + 4*2] ;high limit
+    mov edx, [ebp + 4 + 4*3] ;shifter
+
+    call generate_random
+    ;mov eax, 0XFFFF1FF2
+    and eax, 0xFFFF ;mask to take only 16 bit
+    mov [tmpfloat], eax
+
+    
+    fild dword  [tmpfloat]
+    fild dword  [MAXNUM]
+    fdiv
+    and ecx, 0xFFFF ;mask to take only 16 bit
+    mov [tmpfloat], ecx
+    fild dword [tmpfloat]
+    fmul
+gavno:
+    fstp dword [ebx] ;move result to destanetion
+
+    popad
+    popfd
+    mov    esp,ebp
+    pop    ebp                                ; restore registers
+    ret
+
+generate_random:
+;generates random 16 bit number, stores it in eax
+    push ebx
+    push ecx
+    push edx
+    xor eax,eax
+    mov ax, [SEED]
+    mov bx, ax
+    mov cx, ax
+    mov dx, ax
+    shr bx, 2
+    shr cx, 3
+    shr dx, 5
+    xor bx, ax
+    xor bx, cx
+    xor bx, dx
+    shr ax, 1
+    shl bx, 15
+    or ax, bx
+    mov [SEED], eax
+    pop edx
+    pop ecx
+    pop ebx
+    ret
 
 
 ;push ebp
@@ -234,6 +295,7 @@ resume.do_resume:
 ;ret
 section .rodata
     format_num: db "%d",10, 0   ; format string
+    format_float: db "debug float:%.2f",10, 0   ; format string
     RUTINE_STACK_SIZE: dd 16*1024 
     RUTINE_SIZE: dd 8
     
@@ -260,3 +322,10 @@ section .bss
     KILL_RANGE: resd 1
     BETHA: resd 1
     SEED: resd 1
+
+section .data
+    tmpfloat:   dd  0
+    address_to_return:   dq  0
+    MAXNUM:     dd  0XFFFF
+    two:          dd  2
+    three:          dd  3
