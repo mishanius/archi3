@@ -19,6 +19,8 @@ section .text ;here is my code
 
 scheduler:
 	mov dword [CURR_STEP_K], 1
+    mov ebx, [TARGET_RUTINE]
+    call resume
 
 .continue:
     cmp byte [SHOULD_STOP], 2
@@ -31,8 +33,6 @@ scheduler:
 
     mov eax, [CURR_STEP_K]
     cmp eax, [NUMBER_OF_STEPS]
-    mov ebx, [TARGET_RUTINE]
-    call resume
     jnz scheduler.after_print
     mov ebx, [PRINT_RUTINE]
     call resume

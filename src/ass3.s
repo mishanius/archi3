@@ -249,7 +249,7 @@ random_float:
     fild dword  [MAXNUM]
     fdiv
     and ecx, 0xFFFF ;mask to take only 16 bit
-    mov [tmpfloat], ecx
+    mov dword [tmpfloat], ecx
     fild dword [tmpfloat]
     fmul
 gavno:
@@ -314,6 +314,7 @@ section .bss
     TARGET_RUTINE: resd 1 
 
     TARGET_OBJECT: resd 1 ;pointer to target object
+    DRONE_OBJECT_ARRAY: resd 1 ;array ptr is an adress hence double-word
 
     NUMBER_OF_DRONES: resd 1
     NUMBER_OF_TARGETS: resd 1

@@ -51,16 +51,16 @@ target:
 
 
 .continue:
-    push dword 0
-    push dword 100
+    push dword SHIFTER
+    push dword MAX_COORDINATE
     mov ebx, [TARGET_OBJECT]
     lea ebx, [ebx + TARGET_X]
     push ebx
     call random_float
     add esp, 4*3
 
-    push dword 0
-    push dword 100
+    push dword SHIFTER
+    push dword MAX_COORDINATE
     mov ebx, [TARGET_OBJECT]
     lea ebx, [ebx + TARGET_Y]
     push ebx
