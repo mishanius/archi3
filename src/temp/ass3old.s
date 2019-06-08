@@ -5,11 +5,7 @@ DRONE_SCORE equ 4
 DRONE_X equ 8
 DRONE_Y equ 12
 DRONE_ALPHA equ 16
-TARGET_X equ 0
-TARGET_Y equ 4
-
-FIRST_ARG equ 8
-RUTINE_STACK equ 4
+DRONE_DESTORIED_TARGETS equ 16
 MAX_COORDINATE equ 100
 SHIFTER_COORDINATE equ 0
 
@@ -21,11 +17,6 @@ section .text ;here is my code
     extern drone
     extern print
     extern target
-    global KILL_RANGE
-    global BETHA
-    global TARGET_X
-    global TARGET_Y
-    global FIRST_ARG
     global SHOULD_STOP
     global DRONE_X
     global DRONE_Y
@@ -55,9 +46,45 @@ section .text ;here is my code
 main:
     push ebp
     mov ebp, esp
+    mov ebx, dword [ebp + 4*3]
     
     pushad
 
+    push NUMBER_OF_DRONES
+    push format_num
+    push dword [ebx + 4*1] ; N 
+    call sscanf ; will store the N value in eax
+    add esp, 4*3;
+
+    push NUMBER_OF_TARGETS
+    push format_num
+    push dword [ebx + 4*2] ; T 
+    call sscanf ; will store the T value in eax
+    add esp, 4*3;
+
+    push NUMBER_OF_STEPS
+    push format_num
+    push dword [ebx + 4*3] ; K 
+    call sscanf ; will store the K value in eax
+    add esp, 4*3;
+
+    push KILL_RANGE
+    push format_num
+    push dword [ebx + 4*4] ; KILL_RANGE 
+    call sscanf ; will store the KILL_RANGE value in eax
+    add esp, 4*3;
+
+    push BETHA
+    push format_num
+    push dword [ebx + 4*5] ; BETHA 
+    call sscanf ; will store the BETHA value in eax
+    add esp, 4*3;
+
+    push SEED
+    push format_num
+    push dword [ebx + 4*6] ; SEED 
+    call sscanf ; will store the SEED value in eax
+    add esp, 4*3;
 
     ;create scheduler rutine
     push scheduler
@@ -86,8 +113,7 @@ main:
 
     mov [DRONE_RUTINE_ARRAY], eax
     mov [CURR_CELL], eax
-
-
+    
     ;create drone object array
     mov eax, [NUMBER_OF_DRONES]
     shl eax, 2 ; each array cell is 4 byte    
@@ -96,58 +122,45 @@ main:
     add esp,    4*1   ;restore esp
 
     mov [DRONE_OBJECT_ARRAY], eax
-    
+    mov [CURR_DRONE_STRUCT], eax
     mov dword [DRONE_NUMBER], 1
 
-
-
-
-    mov dword [COUNTER], 0
-
-    xor ecx, ecx
+    mov ecx, [NUMBER_OF_DRONES]  ;init  counter for the loop
+    xor ebx, ebx
 
 .loopstart:
-    
     push drone
+    cmp ecx,1
+    jnz next
+ecxone:
+    mov ecx,1
+next:
     call init_rutine ; now eax hold the rutine struct
     add esp , 4*1
-    
-    mov ecx, [COUNTER]
-    mov ebx, [DRONE_RUTINE_ARRAY]
-    mov [ebx+ ecx*4], eax
-    
-
-    call init_drone ; now eax hold the drone struct ptr
-    mov ebx, [DRONE_OBJECT_ARRAY]
-    mov [ebx+ ecx*4], eax
-    ;------counter up-----
-    mov ecx, [COUNTER]
-    
-    push ecx
-    push format_num
-    call printf
-    add esp,8
-
-    inc dword [COUNTER]
-    ;------counter up-----
+    mov ebx, [CURR_CELL]
+    mov [ebx], eax
+    add dword [CURR_CELL], 4*1 ;curr_cell is address of the cell each cell is size 4 so add 4 to move to next cell
+jnz_m:
+    call init_drone ; now eax hold the drone struct
+    add esp , 4*1
+    mov ebx, [CURR_DRONE_STRUCT]
+    mov [ebx], eax
+    add dword [CURR_DRONE_STRUCT], 4*1
     add dword [DRONE_NUMBER], 1
-    mov ecx, [COUNTER] 
-    cmp ecx, [NUMBER_OF_DRONES]
-    
+    dec ecx
     jnz main.loopstart
-
-
-
     mov dword [DRONE_NUMBER], 1
     mov byte [SHOULD_STOP], 0
-
     pushad
-
+    ;push end_co
     mov [SPMAIN], esp
     mov ebx, [SCHEDULER_RUTINE]
     jmp resume.do_resume
-
+    ;TODO free assets
 end_co:
+    push debug
+    call printf
+    add esp,4
     popad
 
     mov esp, ebp
@@ -174,49 +187,35 @@ init_rutine: ;create drone co-rutine adress stored in EAX
     mov ebp, esp
 
     push ebx 
-    call alloc_rutine ; this will allocate a new rutine struct and store its address in eax
-    mov ebx, eax ;ebx and eax holds the co-rutine
-    push ecx 
-    mov ecx, [ebp + FIRST_ARG]
-    mov dword [eax + 0], ecx ;store address of co-rutine function
-    pop ecx
-debug1:
-    call alloc_stack
-;-------debug--------
-    cmp eax, 0
-    jz problem
-;-------debug--------
-debug2:
-    add eax, [RUTINE_STACK_SIZE]         ;go to top of stack
-    mov [ebx+RUTINE_STACK], eax         ;store address of co-rutine stack
 
-    mov [SPT], esp      ;SPT is temp var to store esp
-debug3:
-    mov esp, [ebx + SPP]
-    push dword [ebp + FIRST_ARG]
+    call alloc_rutine ; this will allocate a new rutine struct and store its address in eax
+    mov ebx, eax
+
+    call alloc_stack ; this will aloocate a new stack for the rutine address stored in eax
+dbg_afterallocstack:
+    add eax, RUTINE_STACK_SIZE; go to top of stack
+    mov [ebx+4], eax ;store address of co-rutine stack
+
+    mov [SPT], esp
+    mov esp, [ebx + 4]
+dgb_ebp_plus:
+    mov edx, [ebp + 8]
+    push dword [ebp + 8] ; function address
+    mov edx, -1
     pushfd
     pushad
-    mov [ebx + SPP], esp 
+    mov [ebx + 4], esp 
+    mov esp, [SPT]
     
-    mov esp, [SPT]      ;restore esp
-    
-;----------debug---------;
-    push debug
-    call printf
-    add esp,4
-;------------------------
     xchg ebx, eax
-debug4:
+
+    push ecx 
+    mov ecx, [ebp + 8]
+    mov dword [eax + 0], ecx ;store address of co-rutine function
+    pop ecx
+    
     pop ebx
 
-    mov esp, ebp
-    pop ebp
-    ret
-problem:
-    push problem_str
-    call printf
-    add esp,4
-    pop ebx
     mov esp, ebp
     pop ebp
     ret
@@ -227,8 +226,9 @@ alloc_stack: ;allocate a stack for the new co-rutine store result in EAX
     push ebx
     push ecx
     push edx
-    push dword [RUTINE_STACK_SIZE]
+    push RUTINE_STACK_SIZE
     call malloc 
+dbg_allocstack_after_mal:
     add esp,    4   ;restore esp
     pop edx
     pop ecx
@@ -243,7 +243,7 @@ alloc_rutine: ;allocate a co-rutine struct (size 8 bytes) address stored in eax
     push ebx
     push ecx
     push edx
-    push dword [RUTINE_SIZE]
+    push RUTINE_SIZE
     call malloc 
     add esp,    4   ;restore esp
     pop edx
@@ -272,10 +272,11 @@ alloc_drone: ;allocate a drone struct (size 16 bytes) address stored in eax
 
 init_drone:
     
-    call alloc_drone        ;now eax holds the drone struct
-    push ebx                ;we dont want to change ebx
-    mov ebx, eax            ;eax and ebx hold ptr to struct
-    push ecx                ;we dont want to change ecx
+    call alloc_drone ;now eax holds the drone struct
+    push ebx ;we dont want to change ebx
+    mov ebx, eax ;eax and ebx hold ptr to struct
+    
+    push ecx ;we dont want to change ecx
     mov ecx, [DRONE_NUMBER]
     mov [ebx+DRONE_ID], ecx
     pop ecx
@@ -332,7 +333,6 @@ init_drone:
 
 
     xchg ebx,eax
-    call print_drone
     pop ebx ;restore ebx
     ret
 
@@ -411,36 +411,6 @@ generate_random:
     pop ebx
     ret
 
-print_drone:
-;drone should be in eax
-    pushad
-    lea ebx, [eax + DRONE_ALPHA]
-    sub esp, 4*2
-    fld  dword  [ebx]
-    fstp qword [esp]
-
-    lea ebx, [eax + DRONE_Y]
-    sub esp, 4*2
-    fld  dword  [ebx]
-    fstp qword [esp]
-
-    lea ebx, [eax + DRONE_X]
-    sub esp, 4*2
-    fld  dword  [ebx]
-    fstp qword [esp]
-
-    lea ebx, [eax + DRONE_SCORE]
-    push dword [ebx]
-    
-    lea ebx, [eax + DRONE_ID]
-    push dword [ebx]
-    
-    push drone_format
-
-    call printf
-    add esp, 4*9
-    popad
-    ret
 
 ;push ebp
 ;mov ebp, esp
@@ -452,16 +422,11 @@ section .rodata
     format_num: db "%d",10, 0   ; format string
     format_float: db "debug float:%.2f",10, 0   ; format string
     debug: db "debug",10, 0   ; format string
-    drone_debug: db "drone_debug",10, 0   ; format string
-    problem_str: db "proble!!!",10, 0   ; format string
-    drone_format: db "drone:%d, %d (%.2f, %.2f) %.2f",10, 0   ; format string
-    RUTINE_STACK_SIZE: dd 14*1024 
+    RUTINE_STACK_SIZE: dd 5*1024 
     RUTINE_SIZE: dd 8
     
 
 section .bss
-
-
     SPMAIN: resd 1 ;
     SPT: resd 1 ;TEMP STACK PTR
     CURR: resd 1
@@ -478,29 +443,15 @@ section .bss
     TARGET_OBJECT: resd 1 ;pointer to target object
     DRONE_OBJECT_ARRAY: resd 1 ;array ptr is an adress hence double-word
 
-
-
-
+    NUMBER_OF_DRONES: resd 1
+    NUMBER_OF_TARGETS: resd 1
+    NUMBER_OF_STEPS: resd 1
     CURR_STEP_K: resd 1
-
-
-
+    KILL_RANGE: resd 1
+    BETHA: resd 1
+    SEED: resd 1
 
 section .data
-
-    ;-----debug----
-    NUMBER_OF_DRONES: dd 20
-    SEED: dd 90000
-    NUMBER_OF_TARGETS:dd 2
-    NUMBER_OF_STEPS :dd 2
-    KILL_RANGE: dd 10
-    BETHA: dd 10
-    ;-----debug----
-
-
-    ;---LOOP HELPERS------
-    COUNTER: dd 0
-    ;---LOOP HELPERS------
     tmpfloat:   dd  0
     address_to_return:   dq  0
     MAXNUM:     dd  0XFFFF

@@ -1,5 +1,5 @@
 section .rodata
-    format_num: db "this is scheduler",10, 0   ; format string
+    scheduler_str: db "this is scheduler",10, 0   ; format string
 
 section .text ;here is my code
     
@@ -18,12 +18,12 @@ section .text ;here is my code
     global scheduler
 
 scheduler:
-	mov dword [CURR_STEP_K], 1
+    mov dword [CURR_STEP_K], 1
     mov ebx, [TARGET_RUTINE]
     call resume
 
 .continue:
-    cmp byte [SHOULD_STOP], 2
+    cmp byte [SHOULD_STOP], 500
     jz scheduler.end
 
     mov eax, [DRONE_NUMBER]

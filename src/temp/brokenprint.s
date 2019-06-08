@@ -14,7 +14,7 @@ section .rodata
     init_drone: db "init drone %d",10, 0   ; format string
     init_drone_f: db "init drone %.2f",10, 0   ; format string
     drone_f: db "drone number %d (%.2f,%.2f) direction %.2f tempt Dist %.2f new direction %.2f",10, 0   ; format string
-    
+    drone_: db "drone number %d (%.2f,%.2f) direction %.2f tempt Dist %.2f new direction %.2f",10, 0   ; format string
     dist_f: db "DIST IS %.2f ",10, 0   ; format string
     ydist_f: db "Y DIST IS %.2f ",10, 0   ; format string
     xdist_f: db "X DIST IS %.2f ",10, 0   ; format string
