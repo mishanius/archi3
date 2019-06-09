@@ -146,10 +146,10 @@ main:
     ;------counter up-----
     mov ecx, [COUNTER]
     
-    push ecx
-    push format_num
-    call printf
-    add esp,8
+    ;push ecx
+    ;push format_num
+    ;call printf
+    ;add esp,8
 
     inc dword [COUNTER]
     ;------counter up-----
@@ -223,11 +223,6 @@ debug3:
     
     mov esp, [SPT]      ;restore esp
     
-;----------debug---------;
-    push debug
-    call printf
-    add esp,4
-;------------------------
     xchg ebx, eax
 debug4:
     pop ebx
@@ -308,9 +303,7 @@ init_drone:
     ;------------- generate x -----------
     push dword 0; we dont need to shift the range it is [0,100]
 
-    fild dword [MAX_COR] ;load integer MAX_COORDINATE
-    sub esp, 4*1 ;make room for float in stack
-    fstp dword [esp] ;store (float)MAX_COORDINATE in stack 
+    push dword [MAX_CORV2]
 
     lea eax, [ebx + DRONE_X] ;load address of &(*(eax+DRONE_x))
     push eax ;push address to return the random value
@@ -320,34 +313,27 @@ init_drone:
     ;------------- done with x -------------------
 
     ;------------- generate y -----------
-    push dword 0; we dont need to shift the range it is [0,100]
+    push dword 0                ; we dont need to shift the range it is [0,100]
 
-    fild dword [MAX_COR] ;load integer MAX_COORDINATE
-    sub esp, 4*1 ;make room for float in stack
-    fstp dword [esp] ;store (float)MAX_COORDINATE in stack 
+    push dword [MAX_CORV2]
 
-    lea eax, [ebx + DRONE_Y] ;load address of &(*(eax+DRONE_Y))
-    push eax ;push address to return the random value
+    lea eax, [ebx + DRONE_Y]    ;load address of &(*(eax+DRONE_Y))
+    push eax                    ;push address to return the random value
 
     call random_float
-    add esp, 4*3 ;restore stack
+    add esp, 4*3                ;restore stack
     ;------------- done with y -------------------
 
     ;------------- generate ALPHA -----------
-    fldpi ;load pi in x87
-    fidiv dword [THREE] ;divide by integer 3 
-    fimul dword [MINUS_ONE] ;mult by -1 we get -pi/3 by shifting the range we will get range [-pi/3,pi/3] 
-    sub esp,4*1
-    fstp dword [esp];store shift value in stack
+    push dword 0
 
-    fldpi ;store pi in x87
-    fidiv dword [THREE] ;div by integer 3 
-    fimul dword [TWO]   ;mult by integer 2 -> we get 2pi/3
+    fldpi                        ;store pi in x87
+    fimul dword [TWO]            ;mult by integer 2 -> we get 2pi
     sub esp,4*1
-    fstp dword [esp] ;move max angle to stack
+    fstp dword [esp]             ;move max angle to stack
 
     lea eax, [ebx + DRONE_ALPHA] ;load address of &(*(eax+DRONE_ALPHA))
-    push eax ;push address to return the random value
+    push eax                     ;push address to return the random value
 
     call random_float
     add esp, 4*3 ;restore stack
@@ -355,7 +341,7 @@ init_drone:
 
 
     xchg ebx,eax
-    call print_drone
+    ;call print_drone
     pop ebx ;restore ebx
     ret
 
@@ -372,26 +358,23 @@ resume.do_resume:
     ret
 
 random_float:
-;input first arg (big address) - high limit
+;input third arg (big address) - high limit
 ;input second arg (mid address) - low limit
-;input third arg (smallest address) -address to store the 10 bit number
+;input first arg (smallest address) -address to store the 10 bit number
     push   ebp
     mov    ebp,esp
     pushfd
     pushad
     mov ebx, [ebp + 4 + 4*1] ;address to store number
-    mov [address_to_return], ebx
     mov ecx, [ebp + 4 + 4*2] ;high limit
     mov edx, [ebp + 4 + 4*3] ;minus shifter
 
     call generate_random
-    and eax, 0xFFFF ;mask to take only 16 bit
     mov [tmpfloat], eax
 
     fild dword  [tmpfloat]
     fild dword  [MAXNUM]
     fdiv
-    ;and ecx, 0xFFFF ;mask to take only 16 bit
     mov dword [tmpfloat], ecx
     fld dword [tmpfloat]
     fmul
@@ -479,6 +462,11 @@ generate_random:
    pop ebx
    ret
 
+random_alpha:
+    pushad
+    popad
+    ret
+
 print_drone:
 ;drone should be in eax
     pushad
@@ -557,12 +545,12 @@ section .bss
 section .data
 
     ;-----debug----
-    NUMBER_OF_DRONES: dd 1
-    SEED: dd 2
-    NUMBER_OF_TARGETS:dd 1
+    NUMBER_OF_DRONES: dd 5
+    SEED: dd 15019
+    NUMBER_OF_TARGETS:dd 3
     NUMBER_OF_STEPS :dd 1
-    KILL_RANGE: dd 10
-    BETHA: dd 10
+    KILL_RANGE: dd 30
+    BETHA: dd 15
     ;-----debug----
 
 

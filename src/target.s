@@ -4,7 +4,7 @@ TARGET_Y equ 4
 
 
 section .rodata
-    format_target: db "this is target is (%.2f) ",10, 0   ; format string
+    format_target: db "random target (%.2f, %.2f) ",10, 0   ; format string
 
 section .data
     MAX: dd 100 
@@ -58,5 +58,23 @@ random_target:
     push ebx
     call random_float
     add esp, 4*3
+
+;---------DEBUG----------
+
+    mov ebx, [TARGET_OBJECT]
+
+    sub esp,8
+    fld dword [ebx + TARGET_Y]
+    fst qword [esp]
+
+    sub esp,8
+    fld dword [ebx + TARGET_X]
+    fst qword [esp]
+
+    push format_target
+    call printf
+    add esp, 20
+;---------DEBUG----------
+
     popad
     ret

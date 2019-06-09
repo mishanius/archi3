@@ -25,6 +25,7 @@ section .text ;here is my code
     extern DRONE_SCORE
     extern NUMBER_OF_DRONES
     extern resume
+    extern ONE_HUNDRED_EIGHTY
     global print
 
 print:
@@ -40,13 +41,13 @@ print:
     add esp, 4*2
 .target:
     mov ebx,[TARGET_OBJECT]
-    lea ebx, [ebx+ TARGET_X]
+    lea ebx, [ebx+ TARGET_Y]
     sub esp, 4*2
     fld  dword  [ebx]
     fstp qword [esp]
 
     mov ebx,[TARGET_OBJECT]
-    lea ebx, [ebx+ TARGET_Y]
+    lea ebx, [ebx+ TARGET_X]
     sub esp, 4*2
     fld  dword  [ebx]
     fstp qword [esp]
@@ -72,6 +73,9 @@ print:
     lea ebx, [eax + DRONE_ALPHA]
     sub esp, 4*2
     fld  dword  [ebx]
+    fldpi
+    fdiv
+    fimul dword [ONE_HUNDRED_EIGHTY]
     fstp qword [esp]
 
     lea ebx, [eax + DRONE_Y]

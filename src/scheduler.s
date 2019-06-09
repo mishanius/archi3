@@ -18,12 +18,10 @@ section .text ;here is my code
     global scheduler
 
 scheduler:
-    mov dword [CURR_STEP_K], 1
-    mov ebx, [TARGET_RUTINE]
-    call resume
+    mov dword [CURR_STEP_K], 0
 
 .continue:
-    cmp byte [SHOULD_STOP], 500
+    cmp byte [SHOULD_STOP], 10
     jz scheduler.end
 
     mov eax, [DRONE_NUMBER]

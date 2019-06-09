@@ -14,7 +14,7 @@ section .rodata
     init_drone: db "init drone %d",10, 0   ; format string
     init_drone_f: db "init drone %.2f",10, 0   ; format string
     drone_f: db "drone number %d (%.2f,%.2f) direction %.2f tempt Dist %.2f new direction %.2f",10, 0   ; format string
-    drone_calc: db "drone calculation number %d dist: %.2f, dist_x^2: %.2f dist_y^2: %.2f target:(%.2f,%.2f)",10, 0;   format string
+    drone_calc: db "drone calculation number %d dist: %.2f, dist_x^2: %.2f dist_y^2: %.2f tarrrget:(%.2f,%.2f)",10, 0;   format string
     dist_f: db "DIST IS %.2f ",10, 0   ; format string
     mod_increse_s: db "MOD increse op2 is %.2f, op1 %.2f mod %.2f ", 0   ; format string
     res_s: db "res %.2f ",10, 0   ; format string
@@ -25,7 +25,7 @@ section .rodata
     winner:db "Drone %d: I am a winner",10, 0   ; format string
     target_x:db "TX %.2f ",10, 0   ; format string
     gen_alpha_s: db "created alpha %.2f ", 0
-    gen_dist_s: db "created new dist %.2f ", 0, 10
+    abs_gamma: db 10,"#####ABS_GAMA %.2f ",  10,10, 0
 
 section .data
     MAX_COR: dd 100
@@ -70,6 +70,7 @@ section .text ;here is my code
     extern TARGET_X
     extern TARGET_Y
     extern exit
+    global ONE_HUNDRED_EIGHTY
     global drone
 
 drone:
@@ -324,8 +325,6 @@ may_destroy:
     mov ebp, esp
     push ebx
 
-    mov dword [GAMMA_IS_GREATER], 0
-
     fld dword [RADIAN_BETHA]            ; (buttom)betha(top)
 
     mov eax, [ebp + FIRST_ARG]          ;eax holds address of drone object
@@ -342,51 +341,47 @@ may_destroy:
     fld dword [eax + TARGET_X]  ;stack is (buttom)betha|alpha|target_y-drone_y|target_x(top)
     mov eax, [ebp + FIRST_ARG]
     fld dword [eax + DRONE_X]   ;stack is (buttom)betha|alpha|target_y-drone_y|target_x|drone_x(top)
-    fsub                        ;stack is (buttom)betha|alpha|target_y-drone_y|drone_x-target_x(top)
-    fptan                       ;stack is (buttom)betha|alpha|gamma(top)
+    fsub 
 
+                           ;stack is (buttom)betha|alpha|target_y-drone_y|drone_x-target_x(top)
+    fpatan                       ;stack is (buttom)betha|alpha|gamma(top)
 
     fcomi st0, st1                      ;cmpare calculated gamma with alpha
-    jb may_destroy.calculate_gamma_minus_alpha
+    jb may_destroy.calculate_alpha_minus_gamma ;gamma is smaller
+
+    sub esp,4                                    ; all we need to do is reverce
+    fstp dword [esp] ;this is gamma
+    sub esp,4
+    fstp dword [esp]  ; this is alpha
+    fld dword [esp + 4]
+    fld dword [esp]
+    add esp,4*2
     mov dword [GAMMA_IS_GREATER], 1
 
 ;------------------------------------------
-.calculate_gamma_minus_alpha:
+.calculate_alpha_minus_gamma:
 
-    fsubr       ;gamma - alpha
+    fsub       ;bigger - smaller it is allways positive
 
-    sub esp, 4
-    fst dword [esp]     ;save gamma - alpha for a moment  
-    
-    fabs        ; abs(gamma - alpha)
     fldpi
-    fcomip st0, st1     ;compares and pops pi
-    jb may_destroy.add_2pi ;if below we are ok  
-.calculate_angle:
-    fcomi st0, st1  ;(buttom)betha|abs(gamma- alpha)(top)
+    fcomip st0, st1      ;check if greater then pi to fix if needed and pop pi
+    ja may_destroy.dont_fix
+    fld dword [TWO]
+    fldpi
+    fmul
+    fsub
+
+.dont_fix: 
+    fabs        ; abs(bigger - smaller)
+    sub esp, 4*2
+    fst qword [esp]
+    push abs_gamma
+    call printf
+    add esp,4*3
+
+    fcomi st0, st1  ;(buttom)betha|abs(bigger- smaller)(top)
     jnb may_destroy.exit_false ;if below we are ok
     jmp may_destroy.calculate_distance
-
-.add_2pi:
-    fld dword [esp]                 ;restore the gamma - alpha value
-    cmp dword [GAMMA_IS_GREATER],1
-    jnz may_destroy.add_2pi_to_gamma
-    fldpi
-    fsub
-    fldpi
-    fsub
-    ;now we got (gamma - alpha) -pi -pi = gamma-(alpha+2pi)
-    fabs
-    jmp may_destroy.calculate_angle
-.add_2pi_to_gamma:
-    fldpi
-    fldpi
-    fadd
-    fadd
-    ;now we got (gamma - alpha) +pi +pi = (gamma+2pi)-(alpha)
-    fabs
-    jmp may_destroy.calculate_angle
-
 ;------------------Calculate distance-----------------------------
 .calculate_distance:
     add esp, 4 ;restore stack
