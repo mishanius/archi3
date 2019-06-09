@@ -7,7 +7,6 @@ DRONE_Y equ 12
 DRONE_ALPHA equ 16
 TARGET_X equ 0
 TARGET_Y equ 4
-
 FIRST_ARG equ 8
 RUTINE_STACK equ 4
 MAX_COORDINATE equ 100
@@ -21,6 +20,13 @@ section .text ;here is my code
     extern drone
     extern print
     extern target
+    extern random_target
+
+    extern TARGET_OBJ_SIZE
+    global MAX_CORV2
+    global CORD_SHIFTER
+
+
     global NUMBER_OF_TARGETS
     global KILL_RANGE
     global BETHA
@@ -59,6 +65,12 @@ main:
     
     pushad
 
+    ;----------------init float constants-------------------
+    fild dword [MAX_CORV2]
+    fstp dword [MAX_CORV2]
+    fild dword [CORD_SHIFTER]
+    fstp dword [CORD_SHIFTER]
+    ;--------------end of init-------------------
 
     ;create scheduler rutine
     push scheduler
@@ -77,6 +89,16 @@ main:
     call init_rutine ;now eax holds the rutine struct
     add esp, 4*1
     mov [TARGET_RUTINE], eax
+
+    ;init target
+    push eax
+    push dword TARGET_OBJ_SIZE
+    call malloc
+    mov [TARGET_OBJECT], eax
+    call random_target
+    pop eax
+
+
 
     ;create array of drone rutines
     mov eax, [NUMBER_OF_DRONES]
@@ -360,10 +382,9 @@ random_float:
     mov ebx, [ebp + 4 + 4*1] ;address to store number
     mov [address_to_return], ebx
     mov ecx, [ebp + 4 + 4*2] ;high limit
-    mov edx, [ebp + 4 + 4*3] ;shifter
+    mov edx, [ebp + 4 + 4*3] ;minus shifter
 
     call generate_random
-    ;mov eax, 0XFFFF1FF2
     and eax, 0xFFFF ;mask to take only 16 bit
     mov [tmpfloat], eax
 
@@ -372,13 +393,11 @@ random_float:
     fdiv
     ;and ecx, 0xFFFF ;mask to take only 16 bit
     mov dword [tmpfloat], ecx
-    ;fild dword [tmpfloat]
     fld dword [tmpfloat]
     fmul
     mov dword [tmpfloat], edx
     fld dword [tmpfloat]
     fsub
-gavno:
     fstp dword [ebx] ;move result to destanetion
 
     popad
@@ -387,30 +406,78 @@ gavno:
     pop    ebp                                ; restore registers
     ret
 
-generate_random:
+;generate_random:
 ;generates random 16 bit number, stores it in eax
-    push ebx
-    push ecx
-    push edx
-    xor eax,eax
-    mov ax, [SEED]
-    mov bx, ax
-    mov cx, ax
-    mov dx, ax
-    shr bx, 2
-    shr cx, 3
-    shr dx, 5
-    xor bx, ax
-    xor bx, cx
-    xor bx, dx
-    shr ax, 1
-    shl bx, 15
-    or ax, bx
-    mov [SEED], eax
-    pop edx
-    pop ecx
-    pop ebx
-    ret
+;    push ebx
+;    push ecx
+;    push edx
+;    xor eax,eax
+;    mov ax, [SEED]
+;    mov bx, ax
+;    mov cx, ax
+;    mov dx, ax
+;    shr bx, 2
+;    shr cx, 3
+;    shr dx, 5
+;    xor bx, ax
+;    xor bx, cx
+;    xor bx, dx
+;    shr ax, 1
+;    shl bx, 15
+;    or ax, bx
+;    mov [SEED], eax
+;    pop edx
+;   pop ecx
+;   pop ebx
+;    ret
+
+
+random_bit:
+
+   mov eax, dword[SEED]
+   and eax, 1               
+
+   mov edx, dword[SEED]
+   and edx, 4               
+   shr edx, 2                
+   xor eax,edx              
+
+   mov edx, dword[SEED]
+   and edx, 8               
+   shr edx, 3                
+   xor eax,edx              
+
+   mov edx, dword[SEED]
+   and edx, 32               
+   shr edx, 5                
+   xor eax,edx              
+
+   shl eax,15               
+   mov edx, dword[SEED]
+   shr edx,1
+   or  eax,edx
+   mov dword[SEED],eax
+
+   ret
+
+generate_random:
+   push ebx
+   push ecx
+   push edx
+
+   mov ecx,16
+   mov eax, dword [SEED]
+
+   .next:
+   call random_bit
+   loop generate_random.next, ecx
+   xor eax,eax
+   mov ax,word[SEED]
+
+   pop edx
+   pop ecx
+   pop ebx
+   ret
 
 print_drone:
 ;drone should be in eax
@@ -490,10 +557,10 @@ section .bss
 section .data
 
     ;-----debug----
-    NUMBER_OF_DRONES: dd 20
-    SEED: dd 90433
-    NUMBER_OF_TARGETS:dd 3
-    NUMBER_OF_STEPS :dd 20
+    NUMBER_OF_DRONES: dd 1
+    SEED: dd 2
+    NUMBER_OF_TARGETS:dd 1
+    NUMBER_OF_STEPS :dd 1
     KILL_RANGE: dd 10
     BETHA: dd 10
     ;-----debug----
@@ -507,6 +574,8 @@ section .data
     MAXNUM:     dd  0XFFFF
     MAX_TARGET_COR: dd 100 
     MAX_COR: dd 100 
+    MAX_CORV2: dd 100
+    CORD_SHIFTER: dd 0
     TWO:          dd  2
     THREE:          dd  3
     MINUS_ONE:          dd  -1

@@ -16,14 +16,16 @@ section .rodata
     drone_f: db "drone number %d (%.2f,%.2f) direction %.2f tempt Dist %.2f new direction %.2f",10, 0   ; format string
     drone_calc: db "drone calculation number %d dist: %.2f, dist_x^2: %.2f dist_y^2: %.2f target:(%.2f,%.2f)",10, 0;   format string
     dist_f: db "DIST IS %.2f ",10, 0   ; format string
-    mod_increse_s: db "MOD increse op2 is %.2f, op1 %.2f mod %.2f",10, 0   ; format string
+    mod_increse_s: db "MOD increse op2 is %.2f, op1 %.2f mod %.2f ", 0   ; format string
     res_s: db "res %.2f ",10, 0   ; format string
-    x_cor_string: db "new X is %.2f ",10   ; format string
-    y_cor_string: db "new Y is %.2f ",10, 0   ; format string
+    x_cor_string: db "X is %.2f ",0   ; format string
+    y_cor_string: db "Y is %.2f ",10, 0   ; format string
     xdist_f: db "X DIST IS %.2f ",10, 0   ; format string
     may_str: db "may destroy!!!!!!!!!!!!!!1###############%%%%%%%%%%%%%%5",10, 0 ; format string
     winner:db "Drone %d: I am a winner",10, 0   ; format string
     target_x:db "TX %.2f ",10, 0   ; format string
+    gen_alpha_s: db "created alpha %.2f ", 0
+    gen_dist_s: db "created new dist %.2f ", 0, 10
 
 section .data
     MAX_COR: dd 100
@@ -35,6 +37,7 @@ section .data
     MAX_ANGLE: dd 0
     TEMP_ALPHA: dd 0
     RADIAN_BETHA: dd 0
+    CURR_DRONE: dd 0
     DRONE_SCORE_ADDRESS: dd 0
     TEMP_D: dd 0
     THREE: dd 3
@@ -47,6 +50,7 @@ section .data
 section .text ;here is my code
     
     extern printf
+    extern free
     extern SPMAIN
     extern TARGET_RUTINE
     extern end_co
@@ -54,10 +58,12 @@ section .text ;here is my code
     extern DRONE_NUMBER
     extern SCHEDULER_RUTINE
     extern DRONE_OBJECT_ARRAY
+    extern PRINT_RUTINE
     extern TARGET_OBJECT
     extern BETHA
     extern KILL_RANGE
     extern resume
+    extern NUMBER_OF_DRONES
     extern random_float
     extern NUMBER_OF_TARGETS
     extern FIRST_ARG
@@ -80,18 +86,6 @@ drone:
     fmul
     fstp dword [RADIAN_BETHA]
 
-    finit ;init fpu (delete all stored)
-    fldpi ;load pi
-    push dword 2
-    fimul dword [esp]
-    fstp dword [MOD_ANGLE] ;store in MOD_ANGLE 2*pi
-    add esp,4 ;restore stack
-
-    push dword [DRONE_NUMBER]
-    push init_drone
-    call    printf
-    add esp, 4*2
-    call resume
 .continue:
     push eax
     push ebx
@@ -103,20 +97,21 @@ drone:
     ;------------- generate alpha -----------
     fldpi                   ;load pi 
     fidiv dword [THREE]     ;divide by integer 3 
-    fimul dword [MINUS_ONE] ;mult by -1 we get -pi/3 by shifting the range we will get range [-pi/3,pi/3] 
+                                                            ;fimul dword [MINUS_ONE] ;mult by -1 we get -pi/3 by shifting the range we will get range [-pi/3,pi/3] 
     sub esp,4*1             ;make room on stack
-    fstp dword [esp]        ;store shift value in stack
+    fstp dword [esp]        ;store shift value in stack by shifting the range we will get range [-pi/3,pi/3]
 
     fldpi                   ;store pi
     fidiv dword [THREE]     ;div by integer 3 
     fimul dword [TWO]       ;mult by integer 2 -> we get 2pi/3
     sub esp,4*1             ;make room on stack
-    fstp dword [esp]        ;move max angle to stack
+    fstp dword [esp]        ;move max angle to stack we will get the range [0,2pi/3] after shift [-pi/3,pi/3]
 
     push dword TEMP_ALPHA
 
     call random_float
     add esp, 4*3 ;restore stack
+
     ;------------- done with alpha -------------------
 
 
@@ -131,6 +126,7 @@ drone:
 
     call random_float
     add esp, 4*3 ;restore stack
+
     ;------------- done with d -------------------
     ;--------here we print for debug-----------------
     sub esp, 4*2
@@ -175,7 +171,7 @@ drone:
     fild dword [MOD_CORDINATE]
     fstp dword [esp]
     sub esp,    4                   ;make room on stack
-    finit              
+    finit             
     fld dword [eax] 
     fcos                        ;cos([eax])
     fld   dword [TEMP_D]        
@@ -243,6 +239,7 @@ drone:
     push winner
     call printf
     add esp, 4*2
+    call free_drones
     call exit
 .didnt_win:
     mov ebx, [TARGET_RUTINE]
@@ -282,9 +279,7 @@ mod_increase:
 
     push mod_increse_s
     call printf
-    add esp, 28 ;restore
-
-    mov ebx, [ebp + 4 + 4*1] ;address of operand to ebx
+    add esp, 4*7 ;restore
 
 
     fadd  ;make the adition
@@ -484,6 +479,45 @@ may_destroy:
     pop ebp
     ret
 
+
+free_drones:
+    pushad
+    mov eax , [NUMBER_OF_DRONES]
+    dec eax
+    mov dword [CURR_DRONE], eax
+.loop:
+    cmp dword [CURR_DRONE], -1
+    jz free_drones.end
+    mov eax, [CURR_DRONE]
+    mov ebx, [DRONE_OBJECT_ARRAY]
+    push dword [ebx + (eax)*4]
+    call free
+    add esp,4
+    dec dword [CURR_DRONE]
+    jmp free_drones.loop
+    push dword [DRONE_OBJECT_ARRAY]
+    call free 
+    add esp,4 
+    
+    push dword [TARGET_OBJECT]
+    call free 
+    add esp,4 
+
+    push dword [TARGET_RUTINE]
+    call free 
+    add esp,4 
+
+    push dword [SCHEDULER_RUTINE]
+    call free 
+    add esp,4 
+
+    push dword [PRINT_RUTINE]
+    call free
+    add esp,4
+
+.end:
+    popad
+    ret
 
 
 
