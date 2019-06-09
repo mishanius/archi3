@@ -14,12 +14,15 @@ section .rodata
     init_drone: db "init drone %d",10, 0   ; format string
     init_drone_f: db "init drone %.2f",10, 0   ; format string
     drone_f: db "drone number %d (%.2f,%.2f) direction %.2f tempt Dist %.2f new direction %.2f",10, 0   ; format string
-    
+    drone_calc: db "drone calculation number %d dist: %.2f, dist_x^2: %.2f dist_y^2: %.2f target:(%.2f,%.2f)",10, 0;   format string
     dist_f: db "DIST IS %.2f ",10, 0   ; format string
-    ydist_f: db "Y DIST IS %.2f ",10, 0   ; format string
+    mod_increse_s: db "MOD increse op2 is %.2f, op1 %.2f mod %.2f",10, 0   ; format string
+    res_s: db "res %.2f ",10, 0   ; format string
+    x_cor_string: db "new X is %.2f ",10   ; format string
+    y_cor_string: db "new Y is %.2f ",10, 0   ; format string
     xdist_f: db "X DIST IS %.2f ",10, 0   ; format string
     may_str: db "may destroy!!!!!!!!!!!!!!1###############%%%%%%%%%%%%%%5",10, 0 ; format string
-    target_y:db "TY %.2f ",10, 0   ; format string
+    winner:db "Drone %d: I am a winner",10, 0   ; format string
     target_x:db "TX %.2f ",10, 0   ; format string
 
 section .data
@@ -32,6 +35,7 @@ section .data
     MAX_ANGLE: dd 0
     TEMP_ALPHA: dd 0
     RADIAN_BETHA: dd 0
+    DRONE_SCORE_ADDRESS: dd 0
     TEMP_D: dd 0
     THREE: dd 3
     TWO: dd 2
@@ -44,6 +48,7 @@ section .text ;here is my code
     
     extern printf
     extern SPMAIN
+    extern TARGET_RUTINE
     extern end_co
     extern SHOULD_STOP
     extern DRONE_NUMBER
@@ -54,9 +59,11 @@ section .text ;here is my code
     extern KILL_RANGE
     extern resume
     extern random_float
+    extern NUMBER_OF_TARGETS
     extern FIRST_ARG
     extern TARGET_X
     extern TARGET_Y
+    extern exit
     global drone
 
 drone:
@@ -180,6 +187,13 @@ drone:
     push eax
     call mod_increase
     add esp, 4*3
+
+    fld dword [ebx + DRONE_X]
+    sub esp, 4*2
+    fstp qword [esp]
+    push x_cor_string
+    call printf
+    add esp, 4*3
     ;------------------------------------------------------------
     
     lea eax, [ebx + DRONE_ALPHA] ;eax is now an address to degree field
@@ -191,7 +205,7 @@ drone:
     sub esp,    4                   ;make room on stack
     finit              
     fld dword [eax] 
-    fsin                        ;cos([eax])
+    fsin                        ;sin([eax])
     fld   dword [TEMP_D]        
     fmul                       ;[TEMP_D]*cos([eax])
     fstp dword [esp]
@@ -202,11 +216,39 @@ drone:
     call mod_increase
     add esp, 4*3
 
+
+    fld dword [ebx + DRONE_Y]
+    sub esp, 4*2
+    fstp qword [esp]
+    push y_cor_string
+    call printf
+    add esp, 4*3
     ;--------------------------------------------------------------
 
 
     push ebx
     call may_destroy
+    pop ebx
+    cmp eax, 1
+    jnz drone.didnt_destried
+    inc dword [ebx + DRONE_SCORE]
+    mov ebx, [ebx + DRONE_SCORE]
+    cmp ebx, [NUMBER_OF_TARGETS]
+    jnz drone.didnt_win
+    
+    add esp,4
+    pop ebx
+    pop eax
+    push dword [DRONE_NUMBER]
+    push winner
+    call printf
+    add esp, 4*2
+    call exit
+.didnt_win:
+    mov ebx, [TARGET_RUTINE]
+    call resume
+    jmp drone.continue
+.didnt_destried:
     add esp,4
 
     pop ebx
@@ -223,11 +265,29 @@ mod_increase:
 ;first operand 1 is address
     push ebp
     mov ebp,esp
-    push ebx
+    pushad
+    
+    sub esp, 4*(2)
+    fld dword [ebp + 4 + 4*3] ;mod value
+    fst qword [esp] ;mod on esp
+    
+    sub esp, 4*(2)
     mov ebx, [ebp + 4 + 4*1] ;address of operand to ebx
-    fld dword [ebp + 4 + 4*3]
     fld dword [ebx] ;get the actual operand
-    fadd dword [ebp + 4 + 4*2] ;make the adition
+    fst qword [esp]  ;operand 1 on esp
+
+    sub esp, 4*(2)
+    fld dword [ebp + 4 + 4*2]
+    fst qword [esp]  ;operand 2 on esp
+
+    push mod_increse_s
+    call printf
+    add esp, 28 ;restore
+
+    mov ebx, [ebp + 4 + 4*1] ;address of operand to ebx
+
+
+    fadd  ;make the adition
     fldz 
     fcomi st0, st1 ;compare with zero
     jbe mod_increase.not_neg
@@ -240,8 +300,16 @@ mod_increase:
     jb mod_increase.exit ;if below we are ok
     fsubr ;subtract the modulu
 .exit:
-    fstp dword [ebx];save the output back to its address
-    pop ebx
+    mov ebx, [ebp + 4 + 4*1] ;get address
+    fst dword [ebx];save the output back to its address
+
+    sub esp, 4*2
+    fstp qword [esp]
+    push res_s
+    call printf
+    add esp, 4*3
+
+    popad
     mov esp, ebp
     pop ebp
     ret
@@ -333,11 +401,15 @@ may_destroy:
     mov eax, [TARGET_OBJECT]
     fld dword [eax + TARGET_Y]
 
-    sub esp,8
-    fst qword [esp]
-    push target_y
-    call printf
-    add esp,4*3
+    sub esp,4*2
+    fst qword [esp]             ;esp - 8
+    
+
+    mov eax, [TARGET_OBJECT]
+    fld dword [eax + TARGET_X]
+
+    sub esp,4*2
+    fst qword [esp]             ;esp - 16
 
     mov eax, [ebp + FIRST_ARG]
     fld dword [eax + DRONE_Y]
@@ -348,20 +420,15 @@ may_destroy:
     add esp,4
     fmul
     
-    sub esp,8
+
+
+    sub esp,4*2                   ;esp - 24
     fst qword [esp]
-    push ydist_f
-    call printf
-    add esp,4*3
+
 
     mov eax, [TARGET_OBJECT]            
     fld dword [eax + TARGET_X]
-
-    sub esp,8
-    fst qword [esp]
-    push target_x
-    call printf
-    add esp,4*3
+    
 
     mov eax, [ebp + FIRST_ARG]
     fld dword [eax + DRONE_X]
@@ -372,31 +439,36 @@ may_destroy:
     add esp,4
     fmul
     
-    sub esp,8
+    ;(target_x-drone_x)^2 only
+    sub esp,4*2                     ;esp - 32
     fst qword [esp]
-    push xdist_f
-    call printf
-    add esp,4*3
-
 
     fadd
     fsqrt
 
-    sub esp,8
+
+    sub esp,4*2                     ;esp - 40
     fst qword [esp]
-    push dist_f
+
+
+    push dword [DRONE_NUMBER]       ;esp - 44
+
+    push drone_calc                 ;esp - 48
     call printf
-    add esp,4*3
+    add esp,4*12
+
     fild dword [KILL_RANGE]
 
     fcomi st0, st1 ;compare
     jbe may_destroy.exit_false ;if below the range is to big
+    
 
-    mov eax, 1
 
     push may_str
     call printf
     add esp,4
+
+    mov eax, 1
 
     jmp may_destroy.exit
 

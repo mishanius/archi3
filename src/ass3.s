@@ -21,6 +21,7 @@ section .text ;here is my code
     extern drone
     extern print
     extern target
+    global NUMBER_OF_TARGETS
     global KILL_RANGE
     global BETHA
     global TARGET_X
@@ -490,9 +491,9 @@ section .data
 
     ;-----debug----
     NUMBER_OF_DRONES: dd 20
-    SEED: dd 90000
-    NUMBER_OF_TARGETS:dd 2
-    NUMBER_OF_STEPS :dd 2
+    SEED: dd 90433
+    NUMBER_OF_TARGETS:dd 3
+    NUMBER_OF_STEPS :dd 20
     KILL_RANGE: dd 10
     BETHA: dd 10
     ;-----debug----
