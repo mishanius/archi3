@@ -21,14 +21,15 @@ scheduler:
     mov dword [CURR_STEP_K], 0
 
 .continue:
-    cmp byte [SHOULD_STOP], 10
-    jz scheduler.end
-
     mov eax, [DRONE_NUMBER]
     mov ebx, [DRONE_RUTINE_ARRAY]
     mov ebx, [ebx + (eax-1)*4]
     call resume
 
+    cmp byte [SHOULD_STOP], 1
+    jz scheduler.end
+
+    inc dword [CURR_STEP_K]
     mov eax, [CURR_STEP_K]
     cmp eax, [NUMBER_OF_STEPS]
     jnz scheduler.after_print
@@ -38,14 +39,12 @@ scheduler:
     
 
 .after_print:
-    inc dword [CURR_STEP_K]
     inc dword [DRONE_NUMBER]
     mov eax, [DRONE_NUMBER]
     cmp eax, [NUMBER_OF_DRONES]
     jbe scheduler.continue
 
     mov dword [DRONE_NUMBER], 1
-    inc byte [SHOULD_STOP]
     jmp scheduler.continue
 
 .end:

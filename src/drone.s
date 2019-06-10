@@ -10,26 +10,29 @@ SHIFTER_COORDINATE equ 0
 
 
 section .rodata
-    format_drone: db "this is drone %d",10, 0   ; format string
-    init_drone: db "init drone %d",10, 0   ; format string
-    init_drone_f: db "init drone %.2f",10, 0   ; format string
-    drone_f: db "drone number %d (%.2f,%.2f) direction %.2f tempt Dist %.2f new direction %.2f",10, 0   ; format string
-    drone_calc: db "drone calculation number %d dist: %.2f, dist_x^2: %.2f dist_y^2: %.2f tarrrget:(%.2f,%.2f)",10, 0;   format string
-    dist_f: db "DIST IS %.2f ",10, 0   ; format string
-    mod_increse_s: db "MOD increse op2 is %.2f, op1 %.2f mod %.2f ", 0   ; format string
-    res_s: db "res %.2f ",10, 0   ; format string
-    x_cor_string: db "X is %.2f ",0   ; format string
-    y_cor_string: db "Y is %.2f ",10, 0   ; format string
-    xdist_f: db "X DIST IS %.2f ",10, 0   ; format string
-    may_str: db "may destroy!!!!!!!!!!!!!!1###############%%%%%%%%%%%%%%5",10, 0 ; format string
-    winner:db "Drone %d: I am a winner",10, 0   ; format string
-    target_x:db "TX %.2f ",10, 0   ; format string
-    gen_alpha_s: db "created alpha %.2f ", 0
-    abs_gamma: db 10,"#####ABS_GAMA %.2f ",  10,10, 0
+    format_drone: db 0,"this is drone %d",10, 0   ; format string
+    init_drone: db 0,"init drone %d",10, 0   ; format string
+    init_drone_f: db 0,"init drone %.2f",10, 0   ; format string
+    drone_f: db 0,"drone number %d (%.2f,%.2f) direction %.2f tempt Dist %.2f new direction %.2f",10, 0   ; format string
+    drone_calc: db 0,"drone calculation number %d dist: %.2f, dist_x^2: %.2f dist_y^2: %.2f tarrrget:(%.2f,%.2f)",10, 0;   format string
+    dist_f: db 0,"DIST IS %.2f ",10, 0   ; format string
+    mod_increse_s: db 0,"MOD increse op2 is %.2f, op1 %.2f mod %.2f ", 0   ; format string
+    res_s: db 0,"res %.2f ",10, 0   ; format string
+    x_cor_string: db 0,"X is %.2f ",0   ; format string
+    foubd_IAM: db "foubd_IAM",10,0
+    y_cor_string: db 0,"Y is %.2f ",10, 0   ; format string
+    xdist_f: db 0,"X DIST IS %.2f ",10, 0   ; format string
+    may_str: db 0,"may destroy!!!!!!!!!!!!!!1###############%%%%%%%%%%%%%%5",10, 0 ; format string
+    winner:db "Drone id %d: I am a winner",10, 0   ; format string
+    target_x:db 0,"TX %.2f ",10, 0   ; format string
+    stack: db 0,"esp %p",10, 0
+    abs_gamma: db 0,"#####ABS_GAMA %.2f ",  10,10, 0
+    abs_gammaf: db 0,"FIX  ->ABS_GAMA %.2f ",  10,10, 0
 
 section .data
     MAX_COR: dd 100
     ONE_HUNDRED_EIGHTY: dd 180
+    EBP_TEMP: dd 0
     MOD_ANGLE:dd 0
     MOD_CORDINATE:dd 100
     MAX_DELTA_D: dd 50
@@ -38,6 +41,7 @@ section .data
     TEMP_ALPHA: dd 0
     RADIAN_BETHA: dd 0
     CURR_DRONE: dd 0
+    IAM: dd 0
     DRONE_SCORE_ADDRESS: dd 0
     TEMP_D: dd 0
     THREE: dd 3
@@ -61,6 +65,7 @@ section .text ;here is my code
     extern PRINT_RUTINE
     extern TARGET_OBJECT
     extern BETHA
+    extern DRONE_RUTINE_ARRAY
     extern KILL_RANGE
     extern resume
     extern NUMBER_OF_DRONES
@@ -74,6 +79,7 @@ section .text ;here is my code
     global drone
 
 drone:
+
     finit ;init fpu (delete all stored)
     fldpi ;load pi
     push dword 2
@@ -88,8 +94,18 @@ drone:
     fstp dword [RADIAN_BETHA]
 
 .continue:
+    
+    push esp
+    push stack
+    call printf
+    add esp,4*2
+    mov dword [EBP_TEMP], esp
+
+
     push eax
     push ebx
+
+    
 
     mov eax, [DRONE_OBJECT_ARRAY]
     mov ebx, [DRONE_NUMBER]    
@@ -236,12 +252,15 @@ drone:
     add esp,4
     pop ebx
     pop eax
+    
     push dword [DRONE_NUMBER]
     push winner
     call printf
     add esp, 4*2
-    call free_drones
-    call exit
+    
+    mov dword [SHOULD_STOP], 1
+    jmp drone.end
+
 .didnt_win:
     mov ebx, [TARGET_RUTINE]
     call resume
@@ -252,6 +271,12 @@ drone:
     pop ebx
     pop eax
 .end:
+
+    push esp
+    push stack
+    call printf
+    add esp,4*2
+
     mov ebx, [SCHEDULER_RUTINE]
     call resume
     jmp drone.continue
@@ -366,7 +391,7 @@ may_destroy:
     fldpi
     fcomip st0, st1      ;check if greater then pi to fix if needed and pop pi
     ja may_destroy.dont_fix
-    fld dword [TWO]
+    fild dword [TWO]
     fldpi
     fmul
     fsub
@@ -384,41 +409,24 @@ may_destroy:
     jmp may_destroy.calculate_distance
 ;------------------Calculate distance-----------------------------
 .calculate_distance:
-    add esp, 4 ;restore stack
-
 
     finit
     mov eax, [TARGET_OBJECT]
     fld dword [eax + TARGET_Y]
 
-    sub esp,4*2
-    fst qword [esp]             ;esp - 8
-    
-
-    mov eax, [TARGET_OBJECT]
-    fld dword [eax + TARGET_X]
-
-    sub esp,4*2
-    fst qword [esp]             ;esp - 16
-
     mov eax, [ebp + FIRST_ARG]
     fld dword [eax + DRONE_Y]
     fsub
+
     sub esp,4
     fst dword [esp]
     fld dword [esp]
     add esp,4
     fmul
-    
 
 
-    sub esp,4*2                   ;esp - 24
-    fst qword [esp]
-
-
-    mov eax, [TARGET_OBJECT]            
+    mov eax, [TARGET_OBJECT]
     fld dword [eax + TARGET_X]
-    
 
     mov eax, [ebp + FIRST_ARG]
     fld dword [eax + DRONE_X]
@@ -428,29 +436,14 @@ may_destroy:
     fld dword [esp]
     add esp,4
     fmul
-    
-    ;(target_x-drone_x)^2 only
-    sub esp,4*2                     ;esp - 32
-    fst qword [esp]
 
     fadd
     fsqrt
 
-
-    sub esp,4*2                     ;esp - 40
-    fst qword [esp]
-
-
-    push dword [DRONE_NUMBER]       ;esp - 44
-
-    push drone_calc                 ;esp - 48
-    call printf
-    add esp,4*12
-
     fild dword [KILL_RANGE]
 
     fcomi st0, st1 ;compare
-    jbe may_destroy.exit_false ;if below the range is to big
+    jb may_destroy.exit_false ;if below the range is to big
     
 
 
@@ -459,7 +452,6 @@ may_destroy:
     add esp,4
 
     mov eax, 1
-
     jmp may_destroy.exit
 
 ;-----------------------------------------------------------------
@@ -475,44 +467,6 @@ may_destroy:
     ret
 
 
-free_drones:
-    pushad
-    mov eax , [NUMBER_OF_DRONES]
-    dec eax
-    mov dword [CURR_DRONE], eax
-.loop:
-    cmp dword [CURR_DRONE], -1
-    jz free_drones.end
-    mov eax, [CURR_DRONE]
-    mov ebx, [DRONE_OBJECT_ARRAY]
-    push dword [ebx + (eax)*4]
-    call free
-    add esp,4
-    dec dword [CURR_DRONE]
-    jmp free_drones.loop
-    push dword [DRONE_OBJECT_ARRAY]
-    call free 
-    add esp,4 
-    
-    push dword [TARGET_OBJECT]
-    call free 
-    add esp,4 
-
-    push dword [TARGET_RUTINE]
-    call free 
-    add esp,4 
-
-    push dword [SCHEDULER_RUTINE]
-    call free 
-    add esp,4 
-
-    push dword [PRINT_RUTINE]
-    call free
-    add esp,4
-
-.end:
-    popad
-    ret
 
 
 

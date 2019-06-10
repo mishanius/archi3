@@ -4,7 +4,7 @@ TARGET_Y equ 4
 
 
 section .rodata
-    format_target: db "random target (%.2f, %.2f) ",10, 0   ; format string
+    format_target: db 0,"random target (%.2f, %.2f) ",10, 0   ; format string
 
 section .data
     MAX: dd 100 
