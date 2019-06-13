@@ -1,6 +1,25 @@
 TARGET_X equ 0
 TARGET_Y equ 4
 
+;---------------------------------------
+SPP equ 4
+DRONE_OBJ_SIZE equ 20
+DRONE_ID equ 0
+DRONE_SCORE equ 4
+DRONE_X equ 8
+DRONE_Y equ 12
+DRONE_ALPHA equ 16
+FIRST_ARG equ 8
+RUTINE_STACK equ 4
+RUTINE_STACK_ADDRESS equ 8
+MAX_COORDINATE equ 100
+SHIFTER_COORDINATE equ 0
+RUTINE_SIZE equ 12  ;function|SPP|HEAD_OF_STACK ADDRESS
+
+;--------------------------------------
+
+
+
 section .rodata
     format_print: db 0,"this is print",10, 0   ; format string
     init_print: db 0,"init print",10, 0   ; format string
@@ -18,11 +37,6 @@ section .text ;here is my code
     extern SCHEDULER_RUTINE
     extern TARGET_OBJECT
     extern DRONE_OBJECT_ARRAY
-    extern DRONE_X
-    extern DRONE_Y
-    extern DRONE_ALPHA
-    extern DRONE_ID
-    extern DRONE_SCORE
     extern NUMBER_OF_DRONES
     extern resume
     extern ONE_HUNDRED_EIGHTY

@@ -8,24 +8,14 @@
     extern target
     extern random_target
 
-    extern TARGET_OBJ_SIZE
     global MAX_CORV2
     global CORD_SHIFTER
 
-    global RUTINE_STACK_ADDRESS
     global NUMBER_OF_TARGETS
     global KILL_RANGE
     global BETHA
-    global TARGET_X
-    global TARGET_Y
-    global FIRST_ARG
     global SHOULD_STOP
-    global DRONE_X
-    global DRONE_Y
-    global DRONE_ALPHA
-    global DRONE_ID
     global DRONE_OBJECT_ARRAY
-    global DRONE_SCORE
     global main
     global SPMAIN
     global end_co
@@ -47,7 +37,7 @@
 
 
 
-
+TARGET_OBJ_SIZE equ 8
 SPP equ 4
 DRONE_OBJ_SIZE equ 20
 DRONE_ID equ 0
@@ -66,7 +56,7 @@ RUTINE_SIZE equ 12  ;function|SPP|HEAD_OF_STACK ADDRESS
 
 section .rodata
     problem_str: db "proble!!!",10, 0   ; format string
-    format_num: db "%d",10, 0   ; format string
+    format_num: db "%d", 0   ; format string
     RUTINE_STACK_SIZE: dd 14*1024 
     
 
@@ -157,25 +147,25 @@ main:
     call sscanf ; will store the K value in eax
     add esp, 4*3;
 
-    push KILL_RANGE
-    push format_num
-    push dword [ebx + 4*4] ; KILL_RANGE 
-    call sscanf ; will store the KILL_RANGE value in eax
-    add esp, 4*3;
-
     push BETHA
     push format_num
-    push dword [ebx + 4*5] ; BETHA 
+    push dword [ebx + 4*4] ; BETHA 
     call sscanf ; will store the BETHA value in eax
     add esp, 4*3;
 
+    
+    push KILL_RANGE
+    push format_num
+    push dword [ebx + 4*5] ; KILL_RANGE 
+    call sscanf ; will store the KILL_RANGE value in eax
+    add esp, 4*3;
+
+    
     push SEED
     push format_num
     push dword [ebx + 4*6] ; SEED 
     call sscanf ; will store the SEED value in eax
     add esp, 4*3;
-
-
 
 
 

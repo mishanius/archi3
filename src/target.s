@@ -27,7 +27,6 @@ section .text ;here is my code
     extern TARGET_OBJECT
     global target
     global random_target
-    global TARGET_OBJ_SIZE
 
 target:
 .continue:

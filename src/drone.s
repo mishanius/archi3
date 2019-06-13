@@ -7,7 +7,20 @@ DRONE_ALPHA equ 16
 DRONE_DESTORIED_TARGETS equ 16
 MAX_COORDINATE equ 100
 SHIFTER_COORDINATE equ 0
+;---------------------------------
+SPP equ 4
 
+
+
+
+
+TARGET_X equ 0
+TARGET_Y equ 4
+FIRST_ARG equ 8
+RUTINE_STACK equ 4
+RUTINE_STACK_ADDRESS equ 8
+RUTINE_SIZE equ 12  ;function|SPP|HEAD_OF_STACK ADDRESS
+;-----------------------------------
 
 section .rodata
     format_drone: db 0,"this is drone %d",10, 0   ; format string
@@ -71,9 +84,6 @@ section .text ;here is my code
     extern NUMBER_OF_DRONES
     extern random_float
     extern NUMBER_OF_TARGETS
-    extern FIRST_ARG
-    extern TARGET_X
-    extern TARGET_Y
     extern exit
     global ONE_HUNDRED_EIGHTY
     global drone
