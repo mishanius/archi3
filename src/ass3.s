@@ -91,6 +91,7 @@ section .bss
     
     CURR_STEP_K: resd 1
     NUMBER_OF_DRONES: resd 1
+    SEED: resd 1
 
 
 
@@ -100,7 +101,7 @@ section .data
 
     ;-----debug----
     ;NUMBER_OF_DRONES: dd 5
-    SEED: dd 15019
+    ;SEED: dd 15019
     NUMBER_OF_TARGETS:dd 3
     NUMBER_OF_STEPS :dd 10
     KILL_RANGE: dd 30
