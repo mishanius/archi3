@@ -1,87 +1,3 @@
-SPP equ 4
-DRONE_OBJ_SIZE equ 20
-DRONE_ID equ 0
-DRONE_SCORE equ 4
-DRONE_X equ 8
-DRONE_Y equ 12
-DRONE_ALPHA equ 16
-TARGET_X equ 0
-TARGET_Y equ 4
-FIRST_ARG equ 8
-RUTINE_STACK equ 4
-RUTINE_STACK_ADDRESS equ 8
-MAX_COORDINATE equ 100
-SHIFTER_COORDINATE equ 0
-RUTINE_SIZE equ 12  ;function|SPP|HEAD_OF_STACK ADDRESS
-
-section .rodata
-    format_num: db "%d",10, 0   ; format string
-    format_float: db "debug float:%.2f",10, 0   ; format string
-    debug: db "debug",10, 0   ; format string
-    drone_debug: db "drone_debug",10, 0   ; format string
-    problem_str: db "proble!!!",10, 0   ; format string
-    drone_format: db "drone:%d, %d (%.2f, %.2f) %.2f",10, 0   ; format string
-    RUTINE_STACK_SIZE: dd 14*1024 
-    
-
-section .bss
-
-
-    SPMAIN: resd 1 ;
-    SPT: resd 1 ;TEMP STACK PTR
-    CURR: resd 1
-    SHOULD_STOP: resb 1
-    DRONE_NUMBER: resd 1
-    CURR_DRONE_STRUCT: resd 1
-    CURR_DRONE: resd 1
-
-    DRONE_RUTINE_ARRAY: resd 1 ;array ptr is an adress hence double-word
-    PRINT_RUTINE: resd 1 ;array ptr is an adress hence double-word
-    CURR_CELL: resd 1 ;current array cell
-    SCHEDULER_RUTINE: resd 1 
-    TARGET_RUTINE: resd 1 
-
-    TARGET_OBJECT: resd 1 ;pointer to target object
-    DRONE_OBJECT_ARRAY: resd 1 ;array ptr is an adress hence double-word
-
-
-
-
-    CURR_STEP_K: resd 1
-
-
-
-
-section .data
-
-    ;-----debug----
-    NUMBER_OF_DRONES: dd 5
-    SEED: dd 15019
-    NUMBER_OF_TARGETS:dd 3
-    NUMBER_OF_STEPS :dd 10
-    KILL_RANGE: dd 30
-    BETHA: dd 15
-    ;-----debug----
-
-
-    ;---LOOP HELPERS------
-    COUNTER: dd 0
-    ;---LOOP HELPERS------
-    tmpfloat:   dd  0
-    address_to_return:   dq  0
-    MAXNUM:     dd  0XFFFF
-    MAX_TARGET_COR: dd 100 
-    MAX_COR: dd 100 
-    MAX_CORV2: dd 100
-    CORD_SHIFTER: dd 0
-    TWO:          dd  2
-    THREE:          dd  3
-    MINUS_ONE:          dd  -1
-    MAX_FLOAT:dd 0
-    SHIFT_FLOAT:dd 0
-
-
-section .text ;here is my code
     extern printf
     extern free
     extern malloc
@@ -129,11 +45,137 @@ section .text ;here is my code
 
 
 
+
+
+
+SPP equ 4
+DRONE_OBJ_SIZE equ 20
+DRONE_ID equ 0
+DRONE_SCORE equ 4
+DRONE_X equ 8
+DRONE_Y equ 12
+DRONE_ALPHA equ 16
+TARGET_X equ 0
+TARGET_Y equ 4
+FIRST_ARG equ 8
+RUTINE_STACK equ 4
+RUTINE_STACK_ADDRESS equ 8
+MAX_COORDINATE equ 100
+SHIFTER_COORDINATE equ 0
+RUTINE_SIZE equ 12  ;function|SPP|HEAD_OF_STACK ADDRESS
+
+section .rodata
+    problem_str: db "proble!!!",10, 0   ; format string
+    format_num: db "%d",10, 0   ; format string
+    RUTINE_STACK_SIZE: dd 14*1024 
+    
+
+section .bss
+    ;general
+    CURR: resd 1
+
+    SPMAIN: resd 1 ;
+    SPT: resd 1 ;TEMP STACK PTR
+    ;scheduler
+    SHOULD_STOP: resb 1
+    ;drones
+    DRONE_NUMBER: resd 1
+    DRONE_RUTINE_ARRAY: resd 1 ;array ptr is an adress hence double-word
+    DRONE_OBJECT_ARRAY: resd 1 ;array ptr is an adress hence double-word
+
+    PRINT_RUTINE: resd 1 ;array ptr is an adress hence double-word
+    SCHEDULER_RUTINE: resd 1 
+    
+    TARGET_RUTINE: resd 1 
+    TARGET_OBJECT: resd 1 ;pointer to target object
+    
+    CURR_STEP_K: resd 1
+    NUMBER_OF_DRONES: resd 1
+
+
+
+
+
+section .data
+
+    ;-----debug----
+    ;NUMBER_OF_DRONES: dd 5
+    SEED: dd 15019
+    NUMBER_OF_TARGETS:dd 3
+    NUMBER_OF_STEPS :dd 10
+    KILL_RANGE: dd 30
+    BETHA: dd 15
+    ;-----debug----
+
+
+    ;---LOOP HELPERS------
+    COUNTER: dd 0
+    ;---LOOP HELPERS------
+    tmpfloat:   dd  0
+    address_to_return:   dq  0
+    MAXNUM:     dd  0XFFFF
+    MAX_TARGET_COR: dd 100 
+    MAX_COR: dd 100 
+    MAX_CORV2: dd 100
+    CORD_SHIFTER: dd 0
+    TWO:          dd  2
+    THREE:          dd  3
+    MINUS_ONE:          dd  -1
+    MAX_FLOAT:dd 0
+    SHIFT_FLOAT:dd 0
+
+
+section .text ;here is my code
+    
+
+
+
 main:
     push ebp
     mov ebp, esp
+    mov ebx, dword [ebp + 4*3]
     
     pushad
+
+    push NUMBER_OF_DRONES
+    push format_num
+    push dword [ebx + 4*1] ; N 
+    call sscanf ; will store the N value in eax
+    add esp, 4*3;
+
+    push NUMBER_OF_TARGETS
+    push format_num
+    push dword [ebx + 4*2] ; T 
+    call sscanf ; will store the T value in eax
+    add esp, 4*3;
+
+    push NUMBER_OF_STEPS
+    push format_num
+    push dword [ebx + 4*3] ; K 
+    call sscanf ; will store the K value in eax
+    add esp, 4*3;
+
+    push KILL_RANGE
+    push format_num
+    push dword [ebx + 4*4] ; KILL_RANGE 
+    call sscanf ; will store the KILL_RANGE value in eax
+    add esp, 4*3;
+
+    push BETHA
+    push format_num
+    push dword [ebx + 4*5] ; BETHA 
+    call sscanf ; will store the BETHA value in eax
+    add esp, 4*3;
+
+    push SEED
+    push format_num
+    push dword [ebx + 4*6] ; SEED 
+    call sscanf ; will store the SEED value in eax
+    add esp, 4*3;
+
+
+
+
 
     ;----------------init float constants-------------------
     fild dword [MAX_CORV2]
@@ -178,7 +220,6 @@ main:
     add esp,    4*1   ;restore esp
 
     mov [DRONE_RUTINE_ARRAY], eax
-    mov [CURR_CELL], eax
 
 
     ;create drone object array
@@ -240,21 +281,6 @@ end_co:
     mov esp, ebp
     pop ebp
     ret
-    
-
-
-someFunc:
-    push ebp
-    mov ebp, esp
-    pushad
-    push dword [NUMBER_OF_TARGETS]
-    push format_num
-    call    printf
-    add esp, 4*2
-    popad
-    mov esp, ebp
-    pop ebp
-    ret
 
 init_rutine: ;create drone co-rutine adress stored in EAX 
     push ebp
@@ -286,12 +312,13 @@ init_rutine: ;create drone co-rutine adress stored in EAX
     mov esp, [SPT]      ;restore esp
     
     xchg ebx, eax
-debug4:
+
     pop ebx
 
     mov esp, ebp
     pop ebp
     ret
+
 problem:
     push problem_str
     call printf
@@ -401,9 +428,8 @@ init_drone:
     add esp, 4*3 ;restore stack
     ;------------- done with ALPHA -------------------
 
-
     xchg ebx,eax
-    ;call print_drone
+
     pop ebx ;restore ebx
     ret
 
@@ -450,32 +476,6 @@ random_float:
     mov    esp,ebp
     pop    ebp                                ; restore registers
     ret
-
-;generate_random:
-;generates random 16 bit number, stores it in eax
-;    push ebx
-;    push ecx
-;    push edx
-;    xor eax,eax
-;    mov ax, [SEED]
-;    mov bx, ax
-;    mov cx, ax
-;    mov dx, ax
-;    shr bx, 2
-;    shr cx, 3
-;    shr dx, 5
-;    xor bx, ax
-;    xor bx, cx
-;    xor bx, dx
-;    shr ax, 1
-;    shl bx, 15
-;    or ax, bx
-;    mov [SEED], eax
-;    pop edx
-;   pop ecx
-;   pop ebx
-;    ret
-
 
 random_bit:
 
@@ -529,49 +529,16 @@ random_alpha:
     popad
     ret
 
-print_drone:
-;drone should be in eax
-    pushad
-    lea ebx, [eax + DRONE_ALPHA]
-    sub esp, 4*2
-    fld  dword  [ebx]
-    fstp qword [esp]
-
-    lea ebx, [eax + DRONE_Y]
-    sub esp, 4*2
-    fld  dword  [ebx]
-    fstp qword [esp]
-
-    lea ebx, [eax + DRONE_X]
-    sub esp, 4*2
-    fld  dword  [ebx]
-    fstp qword [esp]
-
-    lea ebx, [eax + DRONE_SCORE]
-    push dword [ebx]
-    
-    lea ebx, [eax + DRONE_ID]
-    push dword [ebx]
-    
-    push drone_format
-
-    call printf
-    add esp, 4*9
-    popad
-    ret
-
-
-
 free_drones:
     pushad
 
     mov eax , [NUMBER_OF_DRONES]
     dec eax
-    mov dword [CURR_DRONE], eax
+    mov dword [CURR], eax
 .loop:
 
     ;-----remove rutine stack---
-    mov eax, [CURR_DRONE]
+    mov eax, [CURR]
     mov ebx, [DRONE_RUTINE_ARRAY]
     mov ebx, [ebx + (eax)*4] ;rutine object address
     push dword [ebx + 8] ;address of the rutines stack
@@ -579,7 +546,7 @@ free_drones:
     add esp,4
 
     ;--------------------remove rutine object----------------------
-    mov eax, [CURR_DRONE]
+    mov eax, [CURR]
     mov ebx, [DRONE_RUTINE_ARRAY]
     push dword [ebx + (eax)*4]
     call free
@@ -587,14 +554,14 @@ free_drones:
     ;--------------------end remove rutine object----------------------
 
     ;---------------remove drone object-------------------
-    mov eax, [CURR_DRONE]
+    mov eax, [CURR]
     mov ebx, [DRONE_OBJECT_ARRAY]
     push dword [ebx + (eax)*4] ;rutine object address
     call free
     add esp, 4
     ;------------------------------------------------------
-    dec dword [CURR_DRONE]
-    cmp dword [CURR_DRONE], -1
+    dec dword [CURR]
+    cmp dword [CURR], -1
     jnz free_drones.loop
     
 ;-------end of loop there left one last drone object and rutine to remove
